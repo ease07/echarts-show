@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>某公司销售数据</title>
+		<style>
+			body{
+				/* background:radial-gradient(red,blue); */
+				/* rgb(0,73,129) #1b71b8,#0e64a9,#05589a */
+				/* box-shadow: aliceblue 0 0 3px; */
+				/* background: url('../bg.jpg'); */
+				/* background:rgb(21,78,144); */
+				background:#fa8e09;
+				/* 华北 华南 东北 西北 西南 华东 */
+				/* ['#c52f1b','#fa8e09','#f5cb30','#f85b35','#938bde','#dcaff5'] */
+			}
+			*{
+				margin:0;
+			}
+		</style>
+		<script src="./js/echarts.js"></script>
+		<script src="./js/jquery-3.4.1.min.js"></script>
+		<script src="./js/china.js"></script>
+		<script src="./js/sell.js"></script>
+		<!-- <script src="https://www.echartsjs.com/examples/vendors/echarts/map/js/china.js"></script> -->
+	</head>
+	<body>
+		<div id="sell" style="width:100%;height:2200px"></div>
+		
+		<script>
+			//var sell_data = echarts.init(document.getElementById('sell'));
+			//配置主题
+			var sell = document.getElementById('sell');
+			let sellChart;
+			$.getJSON('./json/infographic.json',function(themeJSON){
+				console.log('ok');
+				echarts.registerTheme('infographic',themeJSON);
+				sellChart = echarts.init(sell, 'infographic');
+				//return myEchart;
+			});
+			$.get('./json/sell.json',function(data){
+				console.log("radar:",layer(data,"华南"));
+				//sunburst最后数据
+				let sun = [];
+				let top = sunburstData(data,"高级");
+				let middle = sunburstData(data,"中级");
+				let bottom = sunburstData(data,"低级");
+				let another = sunburstData(data,"其它");
+				sun.push(top,middle,bottom,another);
+				console.log("sun:",sun);
+				//sunburstData(data,"高级");
+				//pieData(data);
+				//yearData(data);
+				//console.log("convertData",convertData(data));
+				sellChart.setOption(option = {
+							// backgroundColor:'#161627',
+							color:['#27727b','#fcce10','#e87c25','#b5c334','#f3a43b','#c6e579'],
+							title:[
+								{
+									x:'center',
+									top:30,
+									text:"某公司销售订单数据分析",
+									//subtext:"某公司订单销量分布",
+									textStyle:{
+										color:'gold',
+										fontSize:30
+									}
+								},
+								{
+									top:150,
+									left:160,
+									text:"地区利润额等级分布",
+									textStyle:{
+										color:'gold',
+										fontSize:24
+									}
+								},
+								{
+									top:150,
+									right:370,
+									text:"订单分布",
+									textStyle:{
+										color:'gold',
+										fontSize:24
+									}
+								},
+								{
+									top:770,
+									right:'center',
+									text:"产品类别订单数量分布",
+									textStyle:{
+										color:'gold',
+										fontSize:24
+									}
+								},
+								{
+									top:1550,
+									right:'center',
+									text:"各城市喜欢买什么?",
+									textStyle:{
+										color:'gold',
+										fontSize:24
+									}
+								}
+							],
+							legend:{
+								top:620,
+								left:75,
+								icon:'circle',
+								inactiveColor:'#333',
+								data:["华南","华北","华东","西北","东北","西南"],
+								//selectedMode:'single',
+								bottom:5,
+								itemGap:5,
+								textStyle:{
+									color:'#eee',
+									fontSize:14
+								},
+								// selected:{
+								// 	"华南":true,
+								// 	"华北":false,
+								// 	"华东":false,
+								// 	"西北":false,
+								// 	"东北":false,
+								// 	"西南":false
+								// }
+							},
+							tooltip:{},
+							dataZoom:[
+								{
+									
+									type:'inside',
+									start:0,
+									end:20,
+									filetrMode:'filter'
+								},
+								{
+									
+									type:'slider',
+									start:0,
+									end:20,
+									filetrMode:'filter'
+								}
+							],
+							dataset:{
+								dimensions:["订单号","订单日期","顾客姓名","订单等级","订单数量","销售额","折扣点","运输方式","利润额","单价","运输成本","区域","省份","城市","产品类别","产品子类别","产品名称","产品包箱","运送日期"],
+								source:yearData(data)
+							},
+							//视觉映射 右上角
+							visualMap:[
+								{
+									top:550,
+									right:5,
+									min:100,
+									max:8000,
+									//映射第3列的数据
+									dimension:2,
+									//tip分段型
+									type: 'piecewise',
+									textStyle:{
+										color: '#fff',
+									},
+									borderRadius:3,
+									//tip框背景
+									//backgroundColor:'rgba(0, 0, 0,0.5)',
+									pieces:[
+										{min:5000},
+										{min:1000,max:5000},
+										{min:500,max:1000},
+										{min:0,max:500}
+									],
+									inRange:{
+										color:['green','blue','red','gold']
+									}
+								}
+							],
+							//地图
+							//地图样式
+							geo:{
+								map:'china',
+								// right:10,
+								// bottom:10,
+								//设置滚轮缩放地图
+								//roam:'scale',
+								layoutCenter:['70%',400],
+								layoutSize:650,
+								//区域名字设置
+								label:{
+									normal:{
+										show:true,
+										textStyle:{
+											fontSize:14,
+											color:'#eee'
+										}
+									},
+									emphasis:{
+										textStyle:{
+											fontSize:14,
+											color:'#333'
+										}
+									}
+								},
+								
+								//省份填充颜色
+								regions:areaColor(),
+								
+								itemStyle:{
+									borderColor:'rgba(255,255,255,0.5)',
+									borderWidth:1,
+									//设置地图区域阴影
+									shadowColor:'rgba(255,255,255,0.5)',
+									//shadowColor:'rgba(0,0,0,1)',
+									//shadowOffsetX:-2,
+									//shadowOffsetY:2,
+									shadowBlur:7
+								},
+									emphasis:{
+										itemStyle:{color:'#ffb248'},
+										borderWidth:0
+									}
+							},
+							
+							//雷达
+							radar:{
+								center:[265,400],
+								radius:180,
+								indicator:[
+									{name:"高级"},
+									{name:"中级"},
+									{name:"低级"},
+									{name:"其它"}
+								],
+								//雷达背景,圆圈
+								shape: 'circle',
+								splitNumber:4,
+								name:{
+									textStyle:{
+										color:'yellow'
+									}
+								},
+								splitLine:{
+									lineStyle:{
+										color:['red','green','blue','orangered']
+									}
+								},
+								splitArea:{
+									show:false
+								},
+								// axisLine:{
+								// 	lineStyle:{
+								// 		color:'rgba(238,197,102,0.5)'
+								// 	}
+								// }
+							},
+							
+							grid:{left:80,bottom:110,width:'88%',height:'20%',show:false},
+							xAxis:{
+								type:'category',
+								axisLine:{
+									symbol:'arrow',//两端显示箭头
+									lineStyle:{color:'#fff'}
+								},
+								axisLabel:{color:'#fff'},
+								splitLine:{show:false}
+							},
+							// xAxis:{type:'value'},
+							yAxis:{
+								type:'category',
+								axisLine:{show:false},
+								axisLabel:{show:false},
+								axisTick:{show:false},//不显示刻度
+								splitLine:{color:'#fa8e09'}
+							},
+							series:[
+								{
+									type:'effectScatter',
+									coordinateSystem:'geo',
+									map:'china',
+									zlevel:2,
+									symbol:'triangle',
+									symbolSize:12,
+									opacity:1,
+									datasetIndex:0,
+									//设置涟漪效果
+									rippleEffect:{
+										scale:2.5
+									},
+									//映射data传入参数的列名
+									tooltip:{
+										formatter:function(param){
+											return ["城市: "+ param.data[3]+'<br/>'+
+											"订单数量: "+ param.data[2]]
+										}
+									},
+									itemStyle:{
+										borderType:'solid',
+										borderColor:'#eee',
+										//opacity:0.2,
+										//borderWidth:1,
+										//shadowColor:'rgba(0,0,0,0.8)',
+										//shadowBlur:15
+									},
+									emphasis:{
+										itemStyle:{
+											opacity:1
+										}
+									},
+									encode: {
+										tooltip:[3,2,5]
+									},
+									//dimensions:["经度", "纬度", "订单数量"],
+									data:convertData(data)
+								},
+								{
+									//华北 华南 东北 西北 西南 华东
+									//['#c52f1b','#fa8e09','#f5cb30','#f85b35','#938bde','#dcaff5']
+									type:'radar',
+									symbol:'none',
+									
+									data:[
+										{
+											name:"华南",
+											itemStyle:{
+												color:'orangered'
+											},
+											lineStyle:{
+												normal:{
+													color:'orangered',
+													width:1,
+													opacity:1
+												}
+											},
+											areaStyle:{
+												normal:{
+													color:'orangered',
+													opacity:0.3
+												},
+												emphasis:{
+													opacity:0.8
+												}
+											},
+											value:layer(data,"华南")
+										},
+										{
+											name:"华北",
+											itemStyle:{
+												color:'#c52f1b'
+											},
+											lineStyle:{
+												normal:{
+													color:'#c52f1b',
+													width:1,
+													opacity:1
+												}
+											},
+											areaStyle:{
+												normal:{
+													color:'#c52f1b',
+													opacity:0.3
+												},
+												emphasis:{
+													opacity:0.8
+												}
+											},
+											value:layer(data,"华北")
+										},
+										{
+											name:"华东",
+											itemStyle:{
+												color:'#dcaff5'
+											},
+											lineStyle:{
+												normal:{
+													color:'#dcaff5',
+													width:1,
+													opacity:1
+												}
+											},
+											areaStyle:{
+												normal:{
+													color:'#dcaff5',
+													opacity:0.3
+												},
+												emphasis:{
+													opacity:0.8
+												}
+											},
+											value:layer(data,"华东")
+										},
+										{
+											name:"西北",
+											itemStyle:{
+												color:'#f85b35'
+											},
+											lineStyle:{
+												normal:{
+													color:'#f85b35',
+													width:1,
+													opacity:1
+												}
+											},
+											areaStyle:{
+												normal:{
+													color:'#f85b35',
+													opacity:0.3
+												},
+												emphasis:{
+													opacity:0.8
+												}
+											},
+											value:layer(data,"西北")
+										},
+										{
+											name:"东北",
+											itemStyle:{
+												color:'#f5cb30'
+											},
+											lineStyle:{
+												normal:{
+													color:'#f5cb30',
+													width:1,
+													opacity:1
+												}
+											},
+											areaStyle:{
+												normal:{
+													color:'#f5cb30',
+													opacity:0.3
+												},
+												emphasis:{
+													opacity:0.8
+												}
+											},
+											value:layer(data,"东北")
+										},
+										{
+											name:"西南",
+											itemStyle:{
+												color:'#938bde'
+											},
+											lineStyle:{
+												normal:{
+													color:'#938bde',
+													width:1,
+													opacity:1
+												}
+											},
+											areaStyle:{
+												normal:{
+													color:'#938bde',
+													opacity:0.3
+												},
+												emphasis:{
+													opacity:0.8
+												}
+											},
+											value:layer(data,"西南")
+										}
+									]
+								},//雷达数据
+								//旭日图
+								{
+									type:'sunburst',
+									data:sun,
+									name:"订单数量",
+									center:['50%',1120],
+									radius:[0,300],
+									levels:[
+										{},
+										{
+											r0:50,
+											r:110,
+											label:{
+												align:'right',
+												// rotate:'tangential',//将标签转成横着的
+												color:'#fff'
+											}
+										},
+										{
+											r0:110,
+											r:200,
+											label:{
+												align:'left',
+												color:'#fff'
+											}
+										},
+										{
+											r0:200,
+											r:210,
+											label:{
+												position:'outside',
+												color:'#fff'
+											},
+											itemStyle:{
+												borderWidth:2
+											}
+										}
+									]
+									
+								},
+								//散点图
+								{
+									type:'scatter',
+									//name:"城市 产品子类别 订单数量 利润额",设置tooltip后失效
+									symbolSize:function(param){
+										//console.log(param);整个json对象
+										return param["利润额"]*0.005
+									},
+									itemStyle:{
+										color:'#d5252e',//#d5252e #ff000a
+										borderColor:'#fff',
+										borderWidth:1,
+										shadowColor:'#fff',
+										shadowBlur:2,
+									},
+									tooltip:{
+										formatter:function(params){
+											//console.log(params.data["产品子类别"]);
+											return "城市: "+params.data["城市"]+"<br/>产品子类别: "+params.data["产品子类别"]+"<br/>订单数量: "+params.data["订单数量"]+"<br/>利润额: "+params.data["利润额"]
+										},
+										textStyle:{
+											textBorderColor:'#333'
+										}
+									},
+									encode:{
+										x:"城市",
+										y:"产品子类别",
+										tooltip:["产品子类别"," ","订单数量"," ","利润额"]
+									}
+								}
+							]
+				});
+			});
+		</script>
+	</body>
+</html>
